@@ -72,7 +72,7 @@
   <script>
   (function () {
     var SEARCH_URL = '/pages/search.json';
-    var BASE_PATH = '/pages/'.slice(0, -1); // "" locally, "/pages" on GitHub Pages
+    var BASE_PATH = SEARCH_URL.replace(/\/search\.json$/, ''); // "" locally, "/pages" on GitHub Pages
     var posts = null;
     var loading = false;
 
