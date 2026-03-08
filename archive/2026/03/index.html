@@ -72,6 +72,7 @@
   <script>
   (function () {
     var SEARCH_URL = '/pages/search.json';
+    var BASE_PATH = '/pages/'.slice(0, -1); // "" locally, "/pages" on GitHub Pages
     var posts = null;
     var loading = false;
 
@@ -118,7 +119,7 @@
           var tags = Array.isArray(p.tags) && p.tags.length
             ? '<span class="search-result-tags">' + p.tags.map(escapeHtml).join(', ') + '</span>'
             : '';
-          return '<li><a class="search-result-item" href="' + escapeHtml(p.url) + '">' +
+          return '<li><a class="search-result-item" href="' + escapeHtml(BASE_PATH + p.url) + '">' +
             '<span class="search-result-title">' + escapeHtml(p.title) + '</span>' +
             tags +
             '</a></li>';
