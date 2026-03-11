@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Issue リンクを正しく生成する Claude Code スキルを作った | クラインの壺</title>
+  <link rel="stylesheet" href="/pages/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <nav>
+        <a href="/pages/" class="site-name">クラインの壺</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <div class="container">
+      <div class="two-pane">
+        <aside class="sidebar">
+          <section class="sidebar-section sidebar-profile">
+            <img class="profile-avatar" src="/pages/img/avatar.svg" alt="名もなき亡霊">
+            <p class="profile-name">名もなき亡霊</p>
+            <p class="profile-desc">AIを使って記憶の整理をしています</p>
+            <p class="profile-message">なんとか生きてます。</p>
+          </section>
+          <section class="sidebar-section">
+            <div class="search-section">
+              <input type="search" id="search-input" class="search-input" placeholder="記事を検索..." autocomplete="off">
+              <ul id="search-results" class="search-results" hidden=""></ul>
+            </div>
+            <h3 class="sidebar-title">タグ</h3>
+            <ul class="sidebar-tag-list">
+              
+              <li>
+                <a href="/pages/tags/blog/">blog</a>
+              </li>
+              
+              <li>
+                <a href="/pages/tags/claude-code/">claude-code</a>
+              </li>
+              
+              <li>
+                <a href="/pages/tags/github/">github</a>
+              </li>
+              
+              <li>
+                <a href="/pages/tags/tips/">tips</a>
+              </li>
+              
+            </ul>
+            <h3 class="sidebar-title sidebar-title--section">アーカイブ</h3>
+            <ul class="sidebar-tag-list">
+              
+              <li>
+                <a href="/pages/archive/2026/03/">2026年03月 (2)</a>
+              </li>
+              
+            </ul>
+          </section>
+        </aside>
+        <div class="main-content">
+          <a href="/pages/" class="back-link">← トップに戻る</a>
+<article class="post-article">
+  <header class="post-header">
+    <h1>GitHub Issue リンクを正しく生成する Claude Code スキルを作った</h1>
+    <div class="post-meta">
+      <time datetime="2026-03-11">2026年03月11日</time>
+      
+      <ul class="tag-list">
+        
+        <li>claude-code</li>
+        
+        <li>github</li>
+        
+        <li>tips</li>
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="post-body">
+    <h2>背景</h2>
+<p>Claude Code でブログ作業をしていて、会話の流れを GitHub Issue としてワンタップで起票できると便利だと思い、Issue 作成リンクの生成を試みた。</p>
+<p>ただ単純に実装しようとすると、いくつか問題にぶつかった。</p>
+<p>なお、今回の作業は <strong>Claude Code web 版</strong>で行っている。ローカルの開発環境はなく <code>gh</code> コマンドも使えない環境なので、PR 作成もリンクを貼る形で対応している。</p>
+<h2>問題1: マークダウンリンクでの二重エンコード</h2>
+<p>GitHub の Issue 作成 URL は以下のような形式で、<code>title</code> と <code>body</code> をクエリパラメータとして渡せる。</p>
+<pre><code>https://github.com/owner/repo/issues/new?title=タイトル&amp;body=本文
+</code></pre>
+<p>最初に試したのは、マークダウンのリンク形式でこの URL を書く方法。</p>
+<pre><code class="language-markdown">[Issueを作成する](https://github.com/.../issues/new?title=...&amp;body=...)
+</code></pre>
+<p>ところが、本文に改行（<code>%0A</code>）や <code>##</code> などの記号を含めると、レンダラーが <code>%</code> を再度エンコードしてしまい、GitHub 側で正しく解釈されなかった。</p>
+<h2>問題2: HTML タグはタップで開けない</h2>
+<p>次に <code>&lt;a&gt;</code> タグを試したが、Claude Code のチャット UI 上ではタップしてもリンクが開かない。これも実用的ではなかった。</p>
+<h2>解決策: 完全 URL エンコード</h2>
+<p><strong>title と body のパラメータ値をあらかじめ完全に URL エンコードしておく</strong>ことで、二重エンコードの問題を回避できた。</p>
+<p>Python3 の <code>urllib.parse.quote</code> を使って、日本語・記号・改行を含むすべての文字を <code>%XX</code> 形式に変換する。</p>
+<pre><code class="language-bash">python3 -c "import urllib.parse; print(urllib.parse.quote('## 概要\n内容をここに書く', safe=''))"
+# → %23%23%20%E6%A6%82%E8%A6%81%0A%E5%86%85%E5%AE%B9%E3%82%92%E3%81%93%E3%81%93%E3%81%AB%E6%9B%B8%E3%81%8F
+</code></pre>
+<p><code>safe=''</code> を指定することで <code>/</code> なども含めてすべての文字がエンコードされる。また、<code>+</code> による省略エンコードは使っていない（ブラウザによっては正しく扱われないケースがあるため）。</p>
+<p>生成されるリンクはこういう形になる。</p>
+<pre><code class="language-markdown">[新しいIssueを作成する](https://github.com/owner/repo/issues/new?title=%E3%82%BF%E3%82%A4%E3%83%88%E3%83%AB&amp;body=%E6%9C%AC%E6%96%87)
+</code></pre>
+<h2>Claude Code スキルとして登録</h2>
+<p>毎回手動でエンコードするのは面倒なので、この手順を Claude Code のスキルとして登録した。</p>
+<p>スキルは <code>~/.claude/skills/&lt;スキル名&gt;/SKILL.md</code> に置くだけで機能する。</p>
+<pre><code>~/.claude/skills/github-issue-link/SKILL.md
+</code></pre>
+<p>内容はこんな感じ。</p>
+<pre><code class="language-markdown">---
+name: github-issue-link
+description: GitHubのIssue作成リンクを生成する。タイトルと本文を完全URLエンコードしたマークダウンリンクを出力する。
+---
+
+# GitHub Issue リンク生成スキル
+
+## ルール
+- title と body のパラメータ値は完全URLエンコードする
+- 改行は %0A、スペースは %20、コロンは %3A、シャープは %23
+- + による省略エンコードは使わない（ブラウザ互換性のため）
+- リポジトリURLは git remote get-url origin から取得する
+
+## URLエンコード手順
+python3 -c "import urllib.parse; print(urllib.parse.quote('文字列', safe=''))"
+
+## 手順
+1. git remote get-url origin でリポジトリURLを取得
+2. title・body を python3 でURLエンコード
+3. マークダウンリンクを組み立てて出力
+</code></pre>
+<p>登録後は「IssueリンクをつくってくれやGitHubに報告したい」などと伝えるだけで、Claude が自動的にこのスキルを使ってリンクを生成してくれる。</p>
+<h2>まとめ</h2>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>結果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>マークダウンリンク（未エンコード）</td>
+<td><code>%</code> が二重エンコードされ壊れる</td>
+</tr>
+<tr>
+<td>HTML <code>&lt;a&gt;</code> タグ</td>
+<td>タップで開けない</td>
+</tr>
+<tr>
+<td>完全 URL エンコード</td>
+<td>正常動作</td>
+</tr>
+</tbody>
+</table>
+<p>URL エンコードは一見シンプルに見えるが、レンダラーの挙動によって二重エンコードが起きるケースがある。GitHub Issue のプリフィル URL を扱う際は、<code>urllib.parse.quote</code> で完全にエンコードしておくのが確実。</p>
+<p>Claude Code のスキル機能は <code>~/.claude/skills/</code> に SKILL.md を置くだけで有効になるので、手順を定型化したい場面では積極的に使っていきたい。</p>
+
+  </div>
+</article>
+
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p>© クラインの壺</p>
+    </div>
+  </footer>
+  <script>
+  (function () {
+    var SEARCH_URL = '/pages/search.json';
+    var BASE_PATH = SEARCH_URL.replace(/\/search\.json$/, ''); // "" locally, "/pages" on GitHub Pages
+    var posts = null;
+    var loading = false;
+
+    var input = document.getElementById('search-input');
+    var results = document.getElementById('search-results');
+    if (!input || !results) return;
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function loadPosts(cb) {
+      if (posts !== null) { cb(); return; }
+      if (loading) return;
+      loading = true;
+      fetch(SEARCH_URL)
+        .then(function (r) { return r.json(); })
+        .then(function (data) { posts = data; loading = false; cb(); })
+        .catch(function () { posts = []; loading = false; cb(); });
+    }
+
+    function normalize(s) {
+      return String(s).toLowerCase();
+    }
+
+    function doSearch(query) {
+      var q = normalize(query.trim());
+      if (!q) { results.hidden = true; return; }
+      var matched = (posts || []).filter(function (p) {
+        return normalize(p.title).includes(q) ||
+               normalize(p.description).includes(q) ||
+               normalize(p.body || '').includes(q) ||
+               (Array.isArray(p.tags) && p.tags.some(function (t) { return normalize(t).includes(q); }));
+      }).slice(0, 8);
+
+      if (matched.length === 0) {
+        results.innerHTML = '<li class="search-result-empty">記事が見つかりませんでした</li>';
+      } else {
+        results.innerHTML = matched.map(function (p) {
+          var tags = Array.isArray(p.tags) && p.tags.length
+            ? '<span class="search-result-tags">' + p.tags.map(escapeHtml).join(', ') + '</span>'
+            : '';
+          return '<li><a class="search-result-item" href="' + escapeHtml(BASE_PATH + p.url) + '">' +
+            '<span class="search-result-title">' + escapeHtml(p.title) + '</span>' +
+            tags +
+            '</a></li>';
+        }).join('');
+      }
+      results.hidden = false;
+    }
+
+    input.addEventListener('focus', function () {
+      loadPosts(function () { doSearch(input.value); });
+    });
+
+    input.addEventListener('input', function () {
+      var self = this;
+      loadPosts(function () { doSearch(self.value); });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.search-section')) {
+        results.hidden = true;
+      }
+    });
+  })();
+  </script>
+
+
+</body></html>
