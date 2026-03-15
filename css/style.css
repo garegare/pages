@@ -80,6 +80,9 @@ body {
 .sidebar {
   position: sticky;
   top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 .sidebar-section {
@@ -189,18 +192,26 @@ footer.site-footer {
 /* Sidebar Profile */
 .sidebar-profile {
   text-align: center;
-  margin-bottom: var(--spacing-md);
 }
 
-.sidebar-links {
-  margin-bottom: var(--spacing-md);
+.sidebar-links .sidebar-title {
+  font-size: 0.875rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .sidebar-about-desc {
-  font-size: 0.8125rem;
-  color: var(--color-text);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
   line-height: 1.6;
   margin-bottom: var(--spacing-sm);
+}
+
+.sidebar-links .sidebar-tag-list {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-sm);
 }
 
 .profile-avatar {
