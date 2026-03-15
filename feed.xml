@@ -3,9 +3,62 @@
   <channel>
     <link>https://garegare.github.io/pages/</link>
     <atom:link href="https://garegare.github.io/pages/feed.xml" rel="self" type="application/rss+xml"/>
-    <lastBuildDate>Sun, 15 Mar 2026 10:56:00 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 15 Mar 2026 11:27:13 GMT</lastBuildDate>
     <language>ja</language>
     <generator>Lume v2.5.2</generator>
+    <item>
+      <title>ブログに RSS フィードを追加した</title>
+      <link>https://garegare.github.io/pages/posts/rss-feed/</link>
+      <guid isPermaLink="false">https://garegare.github.io/pages/posts/rss-feed/</guid>
+      <description>Lume の feed プラグインを使って RSS 2.0 と JSON Feed を生成し、サイドバーにリンクを設置するまでの記録</description>
+      <content:encoded>
+        <![CDATA[<h2>やったこと</h2>
+<p>このブログに RSS フィードを追加した。</p>
+<ul>
+<li><code>/feed.xml</code> — RSS 2.0 形式</li>
+<li><code>/feed.json</code> — JSON Feed 形式</li>
+</ul>
+<p>あわせてサイドバーに RSS へのリンクと GitHub リポジトリへのリンクを設置した。</p>
+<h2>Lume の feed プラグイン</h2>
+<p>このブログは静的サイトジェネレーターの <a href="https://lume.land/">Lume</a> を使っている。Lume には公式の <code>feed</code> プラグインがあり、設定を追加するだけでフィードを生成できる。</p>
+<p><code>_config.ts</code> に以下を追加した。</p>
+<pre><code class="language-ts">import feed from &quot;lume/plugins/feed.ts&quot;;
+
+site.use(feed({
+  output: [&quot;/feed.xml&quot;, &quot;/feed.json&quot;],
+  query: &quot;type=post&quot;,
+  sort: &quot;date=desc&quot;,
+  info: {
+    title: &quot;=site.blog_title&quot;,
+    description: &quot;=site.blog_description&quot;,
+    lang: &quot;ja&quot;,
+  },
+  items: {
+    title: &quot;=title&quot;,
+    description: &quot;=description&quot;,
+  },
+}));
+</code></pre>
+<p><code>output</code> に複数のパスを指定することで、拡張子に応じて RSS 2.0 と JSON Feed の両方を同時に生成できる。<code>query</code> でフィードに含めるページを絞り込んでいる。</p>
+<h2>ブラウザ自動検出</h2>
+<p>RSS 対応ブラウザやリーダーがフィードを自動検出できるよう、<code>&lt;head&gt;</code> に <code>&lt;link rel=&quot;alternate&quot;&gt;</code> を追加した。</p>
+<pre><code class="language-html">&lt;link rel=&quot;alternate&quot; type=&quot;application/rss+xml&quot; title=&quot;{{ site_name }}&quot; href=&quot;/feed.xml&quot;&gt;
+</code></pre>
+<p>これにより、ブラウザの拡張機能や一部のリーダーアプリが自動的にフィードを見つけられるようになる。</p>
+<h2>サイドバーへのリンク設置</h2>
+<p>自動検出だけでは気づきにくいので、サイドバーにもリンクを設置した。プロフィールエリアと検索・タグエリアの間に新しいセクションを追加している。</p>
+<pre><code class="language-html">&lt;section class=&quot;sidebar-section&quot;&gt;
+  &lt;ul class=&quot;sidebar-tag-list&quot;&gt;
+    &lt;li&gt;&lt;a href=&quot;/feed.xml&quot;&gt;RSS&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href=&quot;https://github.com/garegare?tab=repositories&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;GitHub&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/section&gt;
+</code></pre>
+<p>ついでに GitHub のリポジトリ一覧へのリンクも並べて置いた。</p>
+]]>
+      </content:encoded>
+      <pubDate>Sun, 15 Mar 2026 00:00:00 GMT</pubDate>
+    </item>
     <item>
       <title>GitHub Issue リンクを正しく生成する Claude Code スキルを作った</title>
       <link>https://garegare.github.io/pages/posts/github-issue-link-skill/</link>

@@ -2,7 +2,7 @@
 <html lang="ja"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>タグ: github | 無名の開発ブログ</title>
+  <title>ブログに RSS フィードを追加した | 無名の開発ブログ</title>
   <link rel="stylesheet" href="/pages/css/style.css">
   <link rel="alternate" type="application/rss+xml" title="無名の開発ブログ" href="/pages/feed.xml">
 </head>
@@ -47,7 +47,7 @@
               </li>
               
               <li>
-                <a href="/pages/tags/github/" class="active">github</a>
+                <a href="/pages/tags/github/">github</a>
               </li>
               
               <li>
@@ -75,15 +75,71 @@
         </aside>
         <div class="main-content">
           <a href="/pages/" class="back-link">← トップに戻る</a>
-<h2 class="page-title">タグ: github</h2>
-<ul class="post-list">
-  
-  <li class="post-card">
-    <a href="/pages/posts/github-issue-link-skill/">GitHub Issue リンクを正しく生成する Claude Code スキルを作った</a>
-    <time datetime="2026-03-11">2026年03月11日</time>
-  </li>
-  
+<article class="post-article">
+  <header class="post-header">
+    <h1>ブログに RSS フィードを追加した</h1>
+    <div class="post-meta">
+      <time datetime="2026-03-15">2026年03月15日</time>
+      
+      <ul class="tag-list">
+        
+        <li>lume</li>
+        
+        <li>rss</li>
+        
+        <li>tips</li>
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="post-body">
+    <h2>やったこと</h2>
+<p>このブログに RSS フィードを追加した。</p>
+<ul>
+<li><code>/feed.xml</code> — RSS 2.0 形式</li>
+<li><code>/feed.json</code> — JSON Feed 形式</li>
 </ul>
+<p>あわせてサイドバーに RSS へのリンクと GitHub リポジトリへのリンクを設置した。</p>
+<h2>Lume の feed プラグイン</h2>
+<p>このブログは静的サイトジェネレーターの <a href="https://lume.land/">Lume</a> を使っている。Lume には公式の <code>feed</code> プラグインがあり、設定を追加するだけでフィードを生成できる。</p>
+<p><code>_config.ts</code> に以下を追加した。</p>
+<pre><code class="language-ts">import feed from "lume/plugins/feed.ts";
+
+site.use(feed({
+  output: ["/feed.xml", "/feed.json"],
+  query: "type=post",
+  sort: "date=desc",
+  info: {
+    title: "=site.blog_title",
+    description: "=site.blog_description",
+    lang: "ja",
+  },
+  items: {
+    title: "=title",
+    description: "=description",
+  },
+}));
+</code></pre>
+<p><code>output</code> に複数のパスを指定することで、拡張子に応じて RSS 2.0 と JSON Feed の両方を同時に生成できる。<code>query</code> でフィードに含めるページを絞り込んでいる。</p>
+<h2>ブラウザ自動検出</h2>
+<p>RSS 対応ブラウザやリーダーがフィードを自動検出できるよう、<code>&lt;head&gt;</code> に <code>&lt;link rel="alternate"&gt;</code> を追加した。</p>
+<pre><code class="language-html">&lt;link rel="alternate" type="application/rss+xml" title="{{ site_name }}" href="/feed.xml"&gt;
+</code></pre>
+<p>これにより、ブラウザの拡張機能や一部のリーダーアプリが自動的にフィードを見つけられるようになる。</p>
+<h2>サイドバーへのリンク設置</h2>
+<p>自動検出だけでは気づきにくいので、サイドバーにもリンクを設置した。プロフィールエリアと検索・タグエリアの間に新しいセクションを追加している。</p>
+<pre><code class="language-html">&lt;section class="sidebar-section"&gt;
+  &lt;ul class="sidebar-tag-list"&gt;
+    &lt;li&gt;&lt;a href="/feed.xml"&gt;RSS&lt;/a&gt;&lt;/li&gt;
+    &lt;li&gt;&lt;a href="https://github.com/garegare?tab=repositories" target="_blank" rel="noopener"&gt;GitHub&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/section&gt;
+</code></pre>
+<p>ついでに GitHub のリポジトリ一覧へのリンクも並べて置いた。</p>
+
+  </div>
+</article>
 
         </div>
       </div>
