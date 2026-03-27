@@ -3,9 +3,203 @@
   <channel>
     <link>https://garegare.github.io/pages/</link>
     <atom:link href="https://garegare.github.io/pages/feed.xml" rel="self" type="application/rss+xml"/>
-    <lastBuildDate>Sun, 15 Mar 2026 13:53:31 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 27 Mar 2026 01:30:46 GMT</lastBuildDate>
     <language>ja</language>
     <generator>Lume v2.5.2</generator>
+    <item>
+      <title>LLMを用いた生成システムにおける正規化設計プラクティス</title>
+      <link>https://garegare.github.io/pages/posts/lm-normalization-design/</link>
+      <guid isPermaLink="false">https://garegare.github.io/pages/posts/lm-normalization-design/</guid>
+      <description>LLMベースの生成システムで重要になる「正規化レイヤー」の考え方と、設計原則、失敗パターン、実践的な導入手順を整理する</description>
+      <content:encoded>
+        <![CDATA[<h2>概要</h2>
+<p>LLM（大規模言語モデル）を活用した生成システムは、高い柔軟性と表現力を持つ一方で、その出力は必ずしも安定していない。</p>
+<p>入力・出力ともに構造が揺らぎやすく、そのままアプリケーションに組み込むと、さまざまな問題を引き起こす。</p>
+<ul>
+<li>出力フォーマットの揺れ</li>
+<li>意図しない構造変化</li>
+<li>downstream処理との不整合</li>
+<li>再現性の低さ</li>
+</ul>
+<p>これらの問題に対処するために重要になるのが、「正規化レイヤー」という設計である。</p>
+<p>本記事では、LLMベースの生成システムにおける正規化設計の基本パターンを整理する。</p>
+<hr>
+<h2>なぜ正規化が必要か</h2>
+<p>LLMの出力は、本質的に以下の性質を持つ。</p>
+<ul>
+<li>自由度が高い</li>
+<li>文脈に依存して揺れる</li>
+<li>厳密な構造保証がない</li>
+</ul>
+<p>この特性により、実運用では次のような問題が発生する。</p>
+<ul>
+<li>JSONを期待しているのに自然文で返る</li>
+<li>必須フィールドが欠落する</li>
+<li>意味は近いが異なる値が出る</li>
+<li>想定していないスキーマ構造になる</li>
+</ul>
+<p>したがって、</p>
+<p>LLMの出力をそのまま使ってはいけない。</p>
+<p>LLMの出力はあくまで「提案」であり、「確定したデータ」ではないという前提が必要になる。</p>
+<hr>
+<h2>基本アーキテクチャ</h2>
+<p>LLMを利用した生成システムでは、以下のような三層構造を採用するのが効果的である。</p>
+<pre><code class="language-text">[自由入力 / LLM出力]
+        ↓
+[中間表現（ゆるい構造）]
+        ↓
+[正規化（厳密構造）]
+        ↓
+[アプリケーションロジック]
+</code></pre>
+<p>自由な生成と、厳密な構造保証を分離することが重要なポイントになる。</p>
+<hr>
+<h2>中間表現の役割</h2>
+<p>中間表現は、LLMの自由度を活かしつつ、後段で扱える形に受け止めるための層である。</p>
+<p>ここでは次のような設計を行う。</p>
+<ul>
+<li>LLMには自由に生成させる</li>
+<li>構造はあえて「緩く」定義する</li>
+<li>欠損や表現の揺れを許容する</li>
+</ul>
+<p>例：</p>
+<pre><code class="language-json">{
+  &quot;role&quot;: &quot;調査員&quot;,
+  &quot;entry&quot;: &quot;依頼を受けて訪れた&quot;,
+  &quot;tone&quot;: &quot;ミステリー&quot;,
+  &quot;scale&quot;: &quot;中くらい&quot;
+}
+</code></pre>
+<p>この段階では、厳密なenumや型制約は不要である。意味が通ることを優先し、表現の揺れは許容する。</p>
+<hr>
+<h2>正規化レイヤーの役割</h2>
+<p>正規化レイヤーでは、曖昧な中間表現を、厳密で扱いやすい構造へ変換する。</p>
+<h3>値の正規化</h3>
+<pre><code class="language-text">&quot;中くらい&quot; → Scale::Medium
+&quot;medium&quot; → Scale::Medium
+&quot;中規模&quot; → Scale::Medium
+</code></pre>
+<h3>構造の補完</h3>
+<ul>
+<li>欠損値をデフォルトで補う</li>
+<li>不足フィールドを生成する</li>
+</ul>
+<h3>不正値の処理</h3>
+<ul>
+<li>無効な値を破棄</li>
+<li>近い値にマッピング</li>
+<li>fallbackを適用</li>
+</ul>
+<h3>型への変換</h3>
+<pre><code class="language-rust">struct NormalizedParams {
+    scale: Scale,
+    complexity: Complexity,
+    entry_type: EntryType,
+}
+</code></pre>
+<hr>
+<h2>設計原則</h2>
+<h3>原則1：LLM出力を信頼しない</h3>
+<p>LLMは「提案」であり「確定値」ではない。</p>
+<h3>原則2：構造の最終責任はコード側に持たせる</h3>
+<ul>
+<li>enum</li>
+<li>型</li>
+<li>制約</li>
+</ul>
+<p>は必ずコード側で保証する。</p>
+<h3>原則3：テキストを正本にしない</h3>
+<p>自然文は解釈が揺れるため、</p>
+<p>構造化データを正本とする。</p>
+<h3>原則4：段階的に整形する</h3>
+<p>一発で完全な構造を作ろうとしない。</p>
+<ul>
+<li>generate（自由）</li>
+<li>normalize（制約）</li>
+<li>refine（調整）</li>
+</ul>
+<p>に分離する。</p>
+<h3>原則5：分類軸は固定、語彙は拡張</h3>
+<ul>
+<li>分類軸は固定</li>
+<li>表現は拡張可能</li>
+</ul>
+<hr>
+<h2>よくある失敗パターン</h2>
+<h3>フル構造をLLMに生成させる</h3>
+<ul>
+<li>出力が巨大になる</li>
+<li>破綻率が上がる</li>
+</ul>
+<h3>enumを直接生成させる</h3>
+<ul>
+<li>微妙に違う値が出る</li>
+<li>validationが破綻する</li>
+</ul>
+<h3>テキストから毎回再解釈する</h3>
+<ul>
+<li>非決定的</li>
+<li>パフォーマンス悪化</li>
+</ul>
+<h3>正規化を後付けする</h3>
+<ul>
+<li>設計が歪む</li>
+<li>不整合が増える</li>
+</ul>
+<hr>
+<h2>良いパターン</h2>
+<h3>自由入力 → 正規化</h3>
+<pre><code class="language-text">&quot;港町の事件を調べる旅人&quot;
+        ↓
+role = Traveler
+entry_type = Observer
+genre = Mystery
+</code></pre>
+<h3>生成と正規化の分離</h3>
+<pre><code class="language-text">LLM → 中間JSON
+Rust → 正規化
+</code></pre>
+<h3>組み合わせで表現力を出す</h3>
+<pre><code class="language-rust">EntryType + ContactKind + Strength
+</code></pre>
+<hr>
+<h2>応用領域</h2>
+<p>この設計は以下に応用できる。</p>
+<ul>
+<li>ストーリー生成</li>
+<li>NPC生成</li>
+<li>ユーザープロファイル</li>
+<li>ゲーム状態管理</li>
+<li>対話システム</li>
+<li>ワークフロー生成</li>
+</ul>
+<hr>
+<h2>実践的な導入手順</h2>
+<ol>
+<li>LLMの出力を観察する</li>
+<li>揺れパターンを収集する</li>
+<li>中間表現を定義する</li>
+<li>正規化ルールを書く</li>
+<li>enum・型を設計する</li>
+<li>fallback戦略を決める</li>
+</ol>
+<hr>
+<h2>まとめ</h2>
+<p>LLMを使ったシステムでは、</p>
+<p>「生成」よりも「正規化」が重要になる。</p>
+<p>本質は、</p>
+<p>不安定な生成を、安定した構造に変換すること。</p>
+<p>そのためには、</p>
+<ul>
+<li>自由生成と構造保証の分離</li>
+<li>正規化レイヤーの明確化</li>
+<li>型による制約</li>
+</ul>
+<p>が不可欠となる。</p>
+]]>
+      </content:encoded>
+      <pubDate>Fri, 27 Mar 2026 00:00:00 GMT</pubDate>
+    </item>
     <item>
       <title>ブログに RSS フィードを追加した</title>
       <link>https://garegare.github.io/pages/posts/rss-feed/</link>
